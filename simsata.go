@@ -39,8 +39,8 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)
 	<-c
-	conn.Close()
 	fuse.Unmount(config.Base)
+	conn.Close()
 }
 
 func process(c *Config) (conn *fuse.Conn, err error) {
@@ -56,7 +56,6 @@ func process(c *Config) (conn *fuse.Conn, err error) {
 		fuse.AllowOther(),
 		fuse.FSName(FsName),
 		fuse.LocalVolume(),
-		fuse.VolumeName("SimSATA"),
 	}
 	conn, err = fuse.Mount(c.Base, ops...)
 	if err != nil {

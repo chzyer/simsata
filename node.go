@@ -75,7 +75,11 @@ func (t *Node) Mkdir(ctx context.Context, req *fuse.MkdirRequest) (fs.Node, erro
 }
 
 func (t *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
-	f, err := os.Open(t.getTargetPath(""))
+	return readDirAll(t.getTargetPath(""))
+}
+
+func readDirAll(targetPath string) ([]fuse.Dirent, error) {
+	f, err := os.Open(targetPath)
 	if err != nil {
 		return nil, err
 	}
@@ -98,21 +102,19 @@ func (t *Node) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
 }
 
 func (t *Node) Open(ctx context.Context, req *fuse.OpenRequest, resp *fuse.OpenResponse) (fs.Handle, error) {
-	logex.Struct(*req)
-	return nil, io.EOF
-	/*
-		target := t.getTargetPath(req.)
-		base := t.getBasePath(req.Name)
-		f, err := os.OpenFile(target, int(req.Flags), req.Mode)
-		if err != nil {
-			logex.Error(err)
-			return nil, err
-		}
-		return NewHandler(f), nil
-	*/
+	logex.Struct(t.Pwd, *req)
+
+	target := t.getTargetPath("")
+	f, err := os.OpenFile(target, int(req.Flags), 0777)
+	if err != nil {
+		logex.Error(err)
+		return nil, err
+	}
+	return NewHandler(target, f), nil
 }
 
 func (t *Node) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.CreateResponse) (fs.Node, fs.Handle, error) {
+	logex.Info(t.Pwd)
 	target := t.getTargetPath(req.Name)
 	base := t.getBasePath(req.Name)
 	f, err := os.OpenFile(target, int(req.Flags), req.Mode)
@@ -122,7 +124,7 @@ func (t *Node) Create(ctx context.Context, req *fuse.CreateRequest, resp *fuse.C
 	}
 
 	node := NewNode(base, target)
-	handler := NewHandler(f)
+	handler := NewHandler(target, f)
 	return node, handler, nil
 }
 
@@ -133,11 +135,16 @@ func (t *Node) Remove(ctx context.Context, req *fuse.RemoveRequest) error {
 }
 
 func (t *Node) Listxattr(ctx context.Context, req *fuse.ListxattrRequest, resp *fuse.ListxattrResponse) error {
-	logex.Struct(req)
+	logex.Struct(req, ctx)
 	return nil
 }
 
 func (t *Node) Mknod(ctx context.Context, req *fuse.MknodRequest) (fs.Node, error) {
 	logex.Struct(req)
 	return nil, io.EOF
+}
+
+func (t *Node) Fsync(ctx context.Context, req *fuse.FsyncRequest) error {
+	logex.Struct(*req, ctx)
+	return nil
 }

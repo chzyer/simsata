@@ -10,14 +10,21 @@ import (
 )
 
 type Handler struct {
+	Path string
 	file *os.File
 }
 
-func NewHandler(f *os.File) *Handler {
+func NewHandler(path string, f *os.File) *Handler {
 	h := &Handler{
+		Path: path,
 		file: f,
 	}
 	return h
+}
+
+func (h *Handler) ReadDirAll(ctx context.Context) ([]fuse.Dirent, error) {
+	logex.Struct()
+	return readDirAll(h.Path)
 }
 
 func (h *Handler) Read(ctx context.Context, req *fuse.ReadRequest, resp *fuse.ReadResponse) error {
@@ -35,8 +42,19 @@ func (h *Handler) Write(ctx context.Context, req *fuse.WriteRequest, resp *fuse.
 	return err
 }
 
+func (h *Handler) ReadAll(ctx context.Context) ([]byte, error) {
+	fi, err := h.file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	data := make([]byte, int(fi.Size()))
+	n, err := h.file.ReadAt(data, 0)
+	return data[:n], err
+
+}
+
 func (h *Handler) Release(ctx context.Context, req *fuse.ReleaseRequest) error {
-	logex.Struct(*req)
+	logex.Struct(h.Path, *req)
 	return h.file.Close()
 }
 
